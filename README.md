@@ -67,21 +67,19 @@ func main() {
     }
 
     // Receive result
-    for i := 0; i < len(tasks); i++ {
-        result := <-future.Result
+    for result := range future.Result {
         if result.err!= nil {
             fmt.Printf("Task %d failed: %v\n", result.index, result.err)
         } else {
             fmt.Printf("Task %d result: %v\n", result.index, result.value)
         }
     }
-    
 }
 ```
 
 ## Structure and Methods of the Goroutine Pool
-### Pool Struct
-The Pool struct represents a goroutine pool and contains the following important fields:
+### `Pool` Struct
+The `Pool` struct represents a goroutine pool and contains the following important fields:
 - `numWorkers`: The number of worker goroutines in the pool.
 - `taskCh`: The task channel used to receive tasks to be executed.
 - `workers`: A slice storing worker goroutines.
@@ -89,7 +87,7 @@ The Pool struct represents a goroutine pool and contains the following important
 - `wg`: A `sync.WaitGroup` used to wait for all worker goroutines in the pool to complete.
 - `shutdownCh`: A shutdown channel used to notify the goroutine pool to shut down
 
-## Important Methods
+### Important Methods
 - NewPool:
 ```go
 func NewPool(numWorkers int, taskChSize int) *Pool
@@ -111,3 +109,35 @@ Creates an exclusive result channel for the caller, taking the buffer size of th
 func (p *Pool) AddTask(future *Future, index int, fn func() (interface{}, error)) error
 ```
 Adds a task to the goroutine pool, taking a `Future` object, task index, and task function as parameters. Returns an error if the pool is closed.
+- Stop:
+```go
+func (p *Pool) Stop() error
+```
+Closes the goroutine pool, waits for all worker goroutines to complete, and closes relevant channels.
+
+### `worker` Struct
+The `worker` struct represents a worker goroutine and contains the following important fields:
+- `id`: The unique identifier of the worker goroutine.
+- `owner`: A pointer to Pool, indicating the owning goroutine pool.
+- `requestCh`: The channel for receiving tasks.
+- `shutdown`: The shutdown channel used to notify the worker goroutine to shut down.
+
+### Important Methods
+- start:
+```go
+func (w *worker) start()
+```
+Starts the worker goroutine, receives tasks from `requestCh`, executes the tasks, and sends the results to the corresponding result channels.
+
+### `Task` Struct
+The `Task` struct represents a task and contains the following important fields:
+- `index`: The unique index of the task.
+- `fn`: The execution function of the task, which returns the result and a possible error.
+- `responseCh`: The result channel used to store the task execution result.
+
+### `Future` Struct
+The `Future` struct represents a future result and contains the following important fields:
+- `Result`: The result channel used to receive the execution result of the task.
+
+## License
+This package is licensed under the MIT License.

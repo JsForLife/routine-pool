@@ -33,3 +33,7 @@ func (w *worker) start() {
 		}
 	}
 }
+
+func (w *worker) stop() {
+	close(w.shutdown)
+}

@@ -27,6 +27,7 @@ type Future struct {
 type Pool struct {
 	numWorkers int
 	taskCh     chan Task
+	mu         sync.Mutex
 	workers    []*worker
 	closed     atomic.Bool
 	wg         sync.WaitGroup
@@ -96,9 +97,11 @@ func (p *Pool) Stop() error {
 	}
 	close(p.taskCh)
 	close(p.shutdownCh)
+	p.mu.Lock()
 	for _, w := range p.workers {
-		close(w.shutdown)
+		w.stop()
 	}
+	p.mu.Unlock()
 	p.wg.Wait()
 	return nil
 }
